@@ -1,9 +1,11 @@
 <resources>
+    <color name="bg">#F3F1EC</color>
+    <bool name="light_bars">true</bool>
     <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/bg</item>
         <item name="android:statusBarColor">@color/bg</item>
         <item name="android:navigationBarColor">@color/bg</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightStatusBar">@bool/light_bars</item>
+        <item name="android:windowLightNavigationBar">@bool/light_bars</item>
     </style>
-    <color name="bg">#F2F2F7</color>
 </resources>

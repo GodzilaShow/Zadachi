@@ -22,7 +22,7 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);   // localStorage: задачи хранятся на телефоне
         s.setAllowFileAccess(true);
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        web.setBackgroundColor(Color.parseColor("#F2F2F7"));
+        web.setBackgroundColor(getResources().getColor(R.color.bg, getTheme()));
         web.setWebViewClient(new WebViewClient());
         web.addJavascriptInterface(new Bridge(), "Android");
         setContentView(web);
@@ -33,7 +33,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void setDark(final boolean dark) {
             runOnUiThread(() -> {
-                int c = dark ? Color.BLACK : Color.parseColor("#F2F2F7");
+                int c = dark ? Color.parseColor("#0F0F0E") : Color.parseColor("#F3F1EC");
                 Window w = getWindow();
                 w.setStatusBarColor(c);
                 w.setNavigationBarColor(c);
