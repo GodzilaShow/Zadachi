@@ -114,6 +114,7 @@ body.ready .in{animation:fadeUp .8s var(--io) forwards;animation-delay:calc(var(
 /* groups & cards */
 .group{margin-top:16px}
 .ghead{display:flex;align-items:baseline;gap:8px;font-size:13px;font-weight:600;color:var(--sub);padding:0 4px 9px}
+.ghead .clr{margin-left:auto;color:var(--accent);font-weight:600;font-size:13px}
 .ghead em{font-style:normal;opacity:.6}
 .ghead.red{color:var(--red)}
 .item{position:relative;margin-bottom:8px;border-radius:18px;overflow:hidden;transition:height .4s var(--ease),margin .4s var(--ease),opacity .3s}
@@ -295,7 +296,13 @@ function load(){
     {id:uid(),title:'Подготовить презентацию',note:'Для встречи с командой',list:'work',due:addDays(1),time:'10:00',prio:2,subs:[],done:false,created:Date.now()}
   ];
 }
-function save(){try{localStorage.setItem('zadachi.v1',JSON.stringify({tasks:S.tasks,theme:S.theme}))}catch(e){}}
+function save(){try{localStorage.setItem('zadachi.v1',JSON.stringify({tasks:S.tasks,theme:S.theme}))}catch(e){}syncReminders()}
+function remWhen(x){if(!x.due||!x.time)return 0;const [y,m,d]=x.due.split('-').map(Number),[hh,mm]=x.time.split(':').map(Number);return new Date(y,m-1,d,hh,mm).getTime()}
+function syncReminders(){
+  try{if(!window.Android||!Android.syncReminders)return;const now=Date.now();
+    const list=S.tasks.filter(x=>!x.done).map(x=>({id:x.id,when:remWhen(x),title:x.title,body:x.note?x.note.split('\n')[0]:'Пора: '+x.time})).filter(r=>r.when>now);
+    Android.syncReminders(JSON.stringify(list))}catch(e){}
+}
 
 /* theme */
 /* ===== THEMES ===== */
@@ -317,7 +324,7 @@ const FX=(()=>{
   const amb=mk('fxAmb'),goo=mk('fxGoo'),top=mk('fxTop');
   const A=amb.getContext('2d'),G=goo.getContext('2d'),T=top.getContext('2d');
   let W=0,H=0;const DPR=Math.min(window.devicePixelRatio||1,2);
-  function resize(){W=innerWidth;H=innerHeight;[amb,goo,top].forEach(c=>{c.width=W*DPR;c.height=H*DPR;c.style.width=W+'px';c.style.height=H+'px'});
+  function resize(){W=innerWidth;H=innerHeight;[amb,goo,top].forEach(c=>{const k=c===goo?1:DPR;c.width=W*k;c.height=H*k;c.style.width=W+'px';c.style.height=H+'px'});
     [A,G,T].forEach(x=>x.setTransform(DPR,0,0,DPR,0,0));ambInit(true)}
   const R=(a,b)=>a+Math.random()*(b-a);
   const pick=a=>a[Math.random()*a.length|0];
@@ -594,6 +601,7 @@ function dueLabel(x){
 let shown=new Set();
 const ICO={
   cal:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  bell:'<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>',
   flag:'<svg viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>',
   list:'<svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>',
   check:'<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
@@ -630,7 +638,7 @@ function cardHTML(x,i,anim){
   const c=LC(x.list),dl=dueLabel(x),ds=x.subs.filter(s=>s.d).length;
   const ln=(LISTS.find(l=>l.id===x.list)||LISTS[1]).name;
   let meta=S.list==='all'?`<span class="tag"><i></i>${ln}</span>`:'';
-  if(dl)meta+=`<span class="tag ${dl.cls}">${ICO.cal}${dl.txt}</span>`;
+  if(dl)meta+=`<span class="tag ${dl.cls}">${!x.done&&remWhen(x)>Date.now()?ICO.bell:ICO.cal}${dl.txt}</span>`;
   if(x.prio)meta+=`<span class="tag prio ${x.prio===2?'hi':''}">${ICO.flag}${x.prio===2?'Важно':'Средне'}</span>`;
   if(x.subs.length)meta+=`<span class="tag">${ICO.list}${ds}/${x.subs.length}</span><span class="bar"><i style="width:${ds/x.subs.length*100}%"></i></span>`;
   return `<div class="item ${anim?'enter':''}" data-id="${x.id}" style="--i:${i};--c:${c}">
@@ -656,7 +664,7 @@ function render(animateAll){
   }
   let i=0,html='';
   g.forEach(gr=>{
-    html+=`<section class="group"><div class="ghead ${gr.red?'red':''}"><span>${gr.name}</span><span>${gr.items.length}</span></div>`;
+    html+=`<section class="group"><div class="ghead ${gr.red?'red':''}"><span>${gr.name}</span><span>${gr.items.length}</span>${S.tab==='done'?'<button class="clr" id="clrdone">Очистить</button>':''}</div>`;
     gr.items.forEach(x=>{html+=cardHTML(x,i,animateAll||!shown.has(x.id));i++});
     html+='</section>';
   });
@@ -714,6 +722,10 @@ $('#undo').onclick=()=>{$('#toast').classList.remove('show');if(undoFn){undoFn()
 /* list interactions: tap, check, swipe */
 const list=$('#list');
 list.addEventListener('click',e=>{
+  if(e.target.id==='clrdone'){const kept=S.tasks.filter(t=>!t.done),gone=S.tasks.filter(t=>t.done);if(!gone.length)return;
+    document.querySelectorAll('#list .item').forEach((el,i)=>setTimeout(()=>collapse(el,()=>{}),i*40));
+    S.tasks=kept;save();buzz(15);setTimeout(()=>render(),420+gone.length*40);
+    showToast('Удалено: '+gone.length,()=>{S.tasks=S.tasks.concat(gone);save();render(true)});return}
   const chk=e.target.closest('.check');const item=e.target.closest('.item');if(!item)return;
   if(chk){e.stopPropagation();toggleDone(item.dataset.id,chk);return}
 });
@@ -834,7 +846,7 @@ let lastDay=TODAY();setInterval(()=>{if(TODAY()!==lastDay){lastDay=TODAY();rende
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)render()});
 window.addEventListener('resize',segUI);
 
-load();applyTheme();chips();header();segUI();
+load();applyTheme();chips();header();segUI();syncReminders();
 (async()=>{
   try{await document.fonts.ready}catch(e){}
   segUI();

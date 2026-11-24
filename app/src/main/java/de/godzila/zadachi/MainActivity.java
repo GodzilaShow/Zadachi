@@ -2,6 +2,8 @@ package de.godzila.zadachi;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
@@ -13,6 +15,7 @@ import android.webkit.WebViewClient;
 
 public class MainActivity extends Activity {
     private WebView web;
+    private boolean askedNotif = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,6 +53,15 @@ public class MainActivity extends Activity {
             final int c = Color.parseColor(bg);
             getSharedPreferences("ui", MODE_PRIVATE).edit().putInt("bg", c).putBoolean("dark", dark).apply();
             runOnUiThread(() -> paint(c, dark));
+        }
+        @JavascriptInterface
+        public void syncReminders(final String json) {
+            Reminders.sync(getApplicationContext(), json);
+            if (!askedNotif && json.length() > 2 && Build.VERSION.SDK_INT >= 33
+                    && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
+                askedNotif = true;
+                runOnUiThread(() -> requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1));
+            }
         }
         @JavascriptInterface
         public void setDark(final boolean dark) {
