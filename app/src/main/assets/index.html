@@ -325,7 +325,7 @@ const FX=(()=>{
   const A=amb.getContext('2d'),G=goo.getContext('2d'),T=top.getContext('2d');
   let W=0,H=0;const DPR=Math.min(window.devicePixelRatio||1,2);
   function resize(){W=innerWidth;H=innerHeight;[amb,goo,top].forEach(c=>{const k=c===goo?1:DPR;c.width=W*k;c.height=H*k;c.style.width=W+'px';c.style.height=H+'px'});
-    [A,G,T].forEach(x=>x.setTransform(DPR,0,0,DPR,0,0));ambInit(true)}
+    A.setTransform(DPR,0,0,DPR,0,0);T.setTransform(DPR,0,0,DPR,0,0);G.setTransform(1,0,0,1,0,0);ambInit(true)}
   const R=(a,b)=>a+Math.random()*(b-a);
   const pick=a=>a[Math.random()*a.length|0];
 
