@@ -209,7 +209,7 @@ body.ready .fab{animation:fabIn .7s .45s var(--spring) forwards}
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
 @keyframes pop{from{opacity:0;transform:translateY(16px)}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition:none!important}}
+
 </style>
 </head>
 <body>
@@ -319,7 +319,7 @@ const curTheme=()=>document.documentElement.dataset.theme||'light';
 
 /* ===== FX ENGINE ===== */
 const FX=(()=>{
-  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduce=false; /* эффекты всегда включены, даже если в системе уменьшены анимации */
   const mk=(id)=>{const c=document.createElement('canvas');c.id=id;document.body.appendChild(c);return c};
   const amb=mk('fxAmb'),goo=mk('fxGoo'),top=mk('fxTop');
   const A=amb.getContext('2d'),G=goo.getContext('2d'),T=top.getContext('2d');
@@ -402,9 +402,18 @@ const FX=(()=>{
         G.closePath();G.fill();
         if(top(W/2)<H)alive=true;
         G.fillStyle=COL;
+        (B.s||[]).forEach(q=>{const k0=(t-q.del)/.14;if(k0<=0)return;const e=k0>=1?1:1-Math.pow(1-k0,3)*(1-2.2*k0*(1-k0));
+          const k=ds(q.x);let off=0,sh=1;if(k>0){off=k*k*650;sh=Math.max(0,1-k*.9)}
+          if(sh<=.05||q.y+off>H+80)return;alive=true;
+          G.fillStyle=k0<2.5?'#A3101C':COL;
+          q.bl.forEach(b=>{G.beginPath();G.arc(q.x+b.dx*e,q.y+b.dy*e+off,Math.max(.5,b.r*e*sh),0,7);G.fill()});
+          if(sh>.5&&k0>=1){T.fillStyle='rgba(255,210,210,.3)';T.beginPath();T.arc(q.x-q.r*.3,q.y-q.r*.3+off,q.r*.12,0,7);T.fill()}
+          if(k0>=1&&k0<1.05){for(let z=0;z<6;z++){const a=R(-Math.PI,0),v=R(120,380);drops.push({x:q.x,y:q.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,r:R(1.5,4)})}}
+        });
+        G.fillStyle=COL;
         B.r.forEach(d=>{
           if(d.dead)return;
-          const b0=bot(d.x0);
+          const b0=d.sy!=null?d.sy:bot(d.x0);
           if(t<d.del){d.y=b0;return}
           /* draining */
           const k=ds(d.x0);let sh=1,off=0;
@@ -453,15 +462,23 @@ const FX=(()=>{
     const th=TH(theme);
     if(theme==='sakura'){
       rings.push({x,y,r:Math.max(W,H),d:1.2,fill:1,c:'rgba(255,150,190,A)'});
-      for(let i=0;i<40;i++){const a=R(-Math.PI*.95,-Math.PI*.35),v=R(300,720);add({kind:'petal',img:pick(petals),x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,g:380,drag:1.6,term:110,sway:120,sf:R(1.5,3),s:R(22,36),life:R(4,6)})}
-      for(let i=0;i<75;i++)add({kind:'petal',img:pick(petals),x:R(-20,W+20),y:R(-160,-10),vx:R(-20,40),vy:R(70,140),g:30,term:150,wind:R(5,25),sway:90,sf:R(1,2.4),s:R(18,38),delay:R(0,1.4),life:7});
+      for(let i=0;i<55;i++){const a=R(-Math.PI*.95,-Math.PI*.35),v=R(300,760);add({kind:'petal',img:pick(petals),x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,g:380,drag:1.6,term:110,sway:120,sf:R(1.5,3),s:R(20,38),life:R(5,7)})}
+      for(let i=0;i<140;i++){const z=R(.4,1);add({kind:'petal',img:pick(petals),x:R(-40,W+20),y:R(-160,-10),vx:R(-10,40),vy:60+90*z,g:30,term:90+90*z,wind:R(5,30),sway:90,sf:R(1,2.4),s:12+28*z,delay:R(0,2.6),life:9})}
       buzz([6,30,6,30,6]);
     }else if(theme==='blood'){
       const r=[];let x=R(-4,8);
       while(x<W+8){const big=Math.random()<.5;const r0=big?R(11,21):R(4.5,9);
         r.push({x0:x,x,y:0,ly:0,r0,r:r0,vy:0,on:true,v:big?R(380,820)*(Math.random()<.3?1.5:1):R(200,450),del:R(.08,.8),f1:R(1.2,3.5),f2:R(.5,1.6),p1:R(0,6),p2:R(0,6),mea:R(.4,2.6),pts:[],acc:R(500,1100),thin:R(.5,1)});
         x+=r0*R(1.1,2.2)+R(2,10)}
-      blood={t:0,band:R(40,60),r,hold:R(2.8,3.2),o1:R(0,9),o2:R(0,9)};
+      const sp=[];const ns=Math.round(R(4,6));
+      for(let i=0;i<ns;i++){const r0=R(22,46),sx=R(W*.08,W*.92),sy=R(H*.16,H*.68),del=R(.05,.9);const bl=[{dx:0,dy:0,r:r0}];
+        for(let j=0;j<6;j++)bl.push({dx:R(-.6,.6)*r0,dy:R(-.6,.6)*r0,r:r0*R(.45,.8)});
+        for(let j=0;j<18;j++){const a=R(0,6.28),dd=r0*R(1.1,2.6);bl.push({dx:Math.cos(a)*dd,dy:Math.sin(a)*dd,r:R(1.5,6)*(dd<r0*1.6?1.4:1)})}
+        for(let j=0;j<5;j++){const a=R(0,6.28);for(let q=1;q<=4;q++)bl.push({dx:Math.cos(a)*r0*(1+q*.35),dy:Math.sin(a)*r0*(1+q*.35),r:Math.max(1.2,r0*.22-q*1.6)})}
+        sp.push({x:sx,y:sy,r:r0,del,bl});
+        const nr=Math.round(R(1,3));for(let j=0;j<nr;j++){const rr=R(5,11);r.push({x0:sx+R(-.45,.45)*r0,x:sx,y:0,ly:0,sy:sy+r0*R(.35,.6),r0:rr,r:rr,vy:0,on:true,v:R(220,520),del:del+R(.15,.6),f1:R(1.2,3.5),f2:R(.5,1.6),p1:R(0,6),p2:R(0,6),mea:R(.4,2),pts:[],acc:R(500,1100),thin:R(.5,1)})}}
+      blood={t:0,band:R(40,60),r,s:sp,hold:R(2.9,3.3),o1:R(0,9),o2:R(0,9)};
+      const wr=document.querySelector('.wrap');try{wr.animate([{transform:'translate(0,0)'},{transform:'translate(-7px,4px)'},{transform:'translate(6px,-5px)'},{transform:'translate(-4px,-3px)'},{transform:'translate(3px,5px)'},{transform:'translate(0,0)'}],{duration:380,easing:'ease-out'})}catch(e){}
       for(let i=0;i<18;i++){const a=R(-Math.PI*.95,-Math.PI*.2),v=R(250,700);drops.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,r:R(3,9)})}
       buzz([60,40,30,40,20]);kick();
     }else if(theme==='space'){
@@ -497,7 +514,7 @@ const FX=(()=>{
     const t=curTheme();if(!keep||!AP.length)AP=[];AP=[];
     if(reduce){A.clearRect(0,0,W,H);return}
     if(t==='space')for(let i=0;i<80;i++)AP.push({k:'tw',x:R(0,W),y:R(0,H),s:R(.6,1.8),ph:R(0,6.28),sp:R(.8,2.5)});
-    if(t==='sakura')for(let i=0;i<7;i++)AP.push({k:'petal',img:pick(petals),x:R(0,W),y:R(-H,H),vy:R(18,34),vx:R(6,18),s:R(10,16),rot:R(0,6),vr:R(-.8,.8),flip:R(0,6),vf:R(1.5,3)});
+    if(t==='sakura')for(let i=0;i<24;i++){const z=R(.35,1);AP.push({k:'petal',img:pick(petals),z,x:R(0,W),y:R(-H,H),vy:20+50*z,vx:R(6,22)*z,s:8+16*z,rot:R(0,6),vr:R(-1,1),flip:R(0,6),vf:R(1.5,3.5),al:.35+.6*z})}
     if(t==='snow')for(let i=0;i<28;i++)AP.push({k:'snow',x:R(0,W),y:R(0,H),vy:R(14,36),s:R(1.5,3.6),ph:R(0,6),a:R(.4,.9)});
     if(t==='blood')for(let i=0;i<5;i++)AP.push({k:'ember',x:R(0,W),y:R(0,H),vy:R(-8,-16),s:R(1,2.2),ph:R(0,6)});
     nextEv=R(3,6);ambT=0;
@@ -512,7 +529,7 @@ const FX=(()=>{
     AP.forEach(p=>{
       if(p.k==='tw'){const a=.25+.6*(.5+.5*Math.sin(ambT*p.sp+p.ph));A.globalAlpha=a;A.fillStyle='#DDE3FF';A.beginPath();A.arc(p.x,p.y,p.s,0,7);A.fill()}
       else if(p.k==='petal'){p.y+=p.vy*dt;p.x+=(p.vx+Math.sin(ambT+p.flip)*12)*dt;p.rot+=p.vr*dt;p.flip+=p.vf*dt;if(p.y>H+20){p.y=-20;p.x=R(-20,W)}if(p.x>W+20)p.x=-20;
-        A.globalAlpha=.55;A.save();A.translate(p.x,p.y);A.rotate(p.rot);A.scale(Math.cos(p.flip)*.9+.1,1);A.drawImage(p.img,-p.s/2,-p.s/2,p.s,p.s);A.restore()}
+        A.globalAlpha=p.al||.55;A.save();A.translate(p.x,p.y);A.rotate(p.rot);A.scale(Math.cos(p.flip)*.9+.1,1);A.drawImage(p.img,-p.s/2,-p.s/2,p.s,p.s);A.restore()}
       else if(p.k==='snow'){p.y+=p.vy*dt;p.x+=Math.sin(ambT*.8+p.ph)*10*dt;if(p.y>H+5){p.y=-5;p.x=R(0,W)}A.globalAlpha=p.a;A.fillStyle='#B9D4EA';A.beginPath();A.arc(p.x,p.y,p.s,0,7);A.fill()}
       else if(p.k==='ember'){p.y+=p.vy*dt;p.x+=Math.sin(ambT+p.ph)*8*dt;if(p.y<-5){p.y=H+5;p.x=R(0,W)}A.globalAlpha=.35+.3*Math.sin(ambT*2+p.ph);A.fillStyle='#E0162B';A.beginPath();A.arc(p.x,p.y,p.s,0,7);A.fill()}
     });
